@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Колесо Фортуны</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
+            color: #fcd34d; font-family: 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .wheel-container {
+            background: #1e293b; border: 4px solid #a855f7; border-radius: 24px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 0 35px rgba(168, 85, 247, 0.4); text-align: center; position: relative;
+        }
+        header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #475569; }
+        .btn-back { background: #0f172a; border: 1px solid #a855f7; color: #c084fc; padding: 8px 18px; border-radius: 8px; cursor: pointer; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .balance-box { background: #0f172a; padding: 8px 20px; border-radius: 30px; border: 1px solid #a855f7; font-weight: bold; font-size: 18px; color: #fff; }
+        
+        .wheel-box { position: relative; width: 320px; height: 320px; margin: 20px auto; }
+        .pointer { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #ef4444; z-index: 10; }
+        
+        .wheel-svg { width: 100%; height: 100%; transform: rotate(0deg); transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); }
+
+        .spin-btn { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; border: none; padding: 15px 40px; font-size: 20px; font-weight: bold; border-radius: 14px; cursor: pointer; margin-top: 25px; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); width: 100%; }
+        .spin-btn:disabled { background: #4b5563; cursor: not-allowed; box-shadow: none; }
+        .win-display { margin-top: 20px; font-size: 24px; font-weight: bold; color: #4ade80; min-height: 32px; }
+    </style>
+</head>
+<body>
+
+    <div class="wheel-container">
+        <header>
+            <a href="index.html" class="btn-back">← В лобби</a>
+            <div class="balance-box">Баланс: <span id="balance-val">1000</span></div>
+        </header>
+
+        <h2>🔮 КОЛЕСО ФОРТУНЫ 🔮</h2>
+        <p style="color: #94a3b8; font-size:14px; margin-top:5px;">Стоимость вращения: 200 монет</p>
+
+        <div class="wheel-box">
+            <div class="pointer"></div>
+            <!-- Идеально выверенная сетка круга -->
+            <svg class="wheel-svg" id="wheel" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="95" fill="#0f172a" stroke="#a855f7" stroke-width="3"/>
+                
+                <!-- Сектора отрисованы с точным шагом в 45 градусов -->
+                <path d="M100,100 L100,5 A95,95 0 0,1 167.1,32.9 Z" fill="#3b82f6"/>
+                <path d="M100,100 L167.1,32.9 A95,95 0 0,1 195,100 Z" fill="#10b981"/>
+                <path d="M100,100 L195,100 A95,95 0 0,1 167.1,167.1 Z" fill="#f59e0b"/>
+                <path d="M100,100 L167.1,167.1 A95,95 0 0,1 100,195 Z" fill="#b91c1c"/>
+                <path d="M100,100 L100,195 A95,95 0 0,1 32.9,167.1 Z" fill="#7c3aed"/>
+                <path d="M100,100 L32.9,167.1 A95,95 0 0,1 5,100 Z" fill="#06b6d4"/>
+                <path d="M100,100 L5,100 A95,95 0 0,1 32.9,32.9 Z" fill="#4b5563"/>
+                <path d="M100,100 L32.9,32.9 A95,95 0 0,1 100,5 Z" fill="#ec4899"/>
+                
+                <!-- Текст выровнен строго по центру каждого луча и читается ровно -->
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(22.5 100 100)">0</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(67.5 100 100)">100</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(112.5 100 100)">300</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(157.5 100 100)">50</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(202.5 100 100)">1000</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(247.5 100 100)">200</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(292.5 100 100)">0</text>
+                <text x="100" y="35" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle" transform="rotate(337.5 100 100)">500</text>
+                
+                <circle cx="100" cy="100" r="15" fill="#fff" stroke="#a855f7" stroke-width="2"/>
+            </svg>
+        </div>
+
+        <button class="spin-btn" id="wheel-btn" onclick="spinWheel()">КРУТИТЬ КОЛЕСО</button>
+        <div class="win-display" id="wheel-win"></div>
+    </div>
+
+    <script>
+        let wallet = parseInt(localStorage.getItem("global_player_balance")) || 1000;
+        let isSpinning = false;
+        let deg = 0;
+
+        const prizesStr = "0,100,300,50,1000,200,0,500";
+        const prizes = prizesStr.split(",");
+
+        function syncWallet() {
+            document.getElementById("balance-val").innerText = wallet;
+            localStorage.setItem("global_player_balance", wallet.toString());
+        }
+        syncWallet();
+
+        function spinWheel() {
+            if (isSpinning) return;
+            if (wallet < 200) { 
+                alert("Недостаточно монет! Начислено 1000 тестовых монет."); 
+                wallet = 1000; 
+                syncWallet(); 
+                return; 
+            }
+
+            wallet -= 200; syncWallet();
+            isSpinning = true;
+            document.getElementById("wheel-btn").disabled = true;
+            document.getElementById("wheel-win").innerText = "";
+
+            let prizeIndex = Math.floor(Math.random() * 8);
+            
+            // Выверенная математика торможения колеса ровно на середине выбранного цвета
+            let targetDeg = 360 - (prizeIndex * 45) - 22.5; 
+            
+            deg += 1440 + targetDeg - (deg % 360);
+            
+            const wheel = document.getElementById("wheel");
+            wheel.style.transform = "rotate(" + deg + "deg)";
+
+            setTimeout(function() {
+                let won = parseInt(prizes[prizeIndex]);
+                wallet += won;
+                syncWallet();
+
+                if (won > 0) {
+                    document.getElementById("wheel-win").innerText = "ВЫИГРЫШ: +" + won + " МОНЕТ!";
+                } else {
+                    document.getElementById("wheel-win").innerText = "ПОВЕЗЕТ В СЛЕДУЮЩИЙ РАЗ!";
+                }
+
+                isSpinning = false;
+                document.getElementById("wheel-btn").disabled = false;
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

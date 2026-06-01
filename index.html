@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEL-SLOTS — Главное Меню</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #070a13 0%, #0f172a 100%);
+            color: #f3f4f6;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        header {
+            max-width: 800px;
+            margin: 0 auto 40px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 20px;
+        }
+        .logo { font-size: 26px; font-weight: 800; color: #10b981; letter-spacing: 1px; }
+        .balance-box {
+            background: #1e293b;
+            padding: 10px 25px;
+            border-radius: 50px;
+            border: 1px solid #10b981;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .balance-box span { color: #f59e0b; }
+        
+        .menu-title { text-align: center; font-size: 32px; margin-bottom: 10px; color: #fff; }
+        .menu-subtitle { text-align: center; color: #9ca3af; margin-bottom: 40px; }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .game-card {
+            background: #1e293b;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+            position: relative;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: #10b981;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+        }
+        .cover {
+            height: 160px;
+            background: linear-gradient(45deg, #065f46, #047857);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 65px;
+        }
+        .game-card.locked { cursor: not-allowed; }
+        .game-card.locked:hover { transform: none; border-color: #334155; box-shadow: none; }
+        .game-card.locked .cover { background: linear-gradient(45deg, #334155, #1e293b); }
+        
+        .game-info { padding: 20px; }
+        .game-info h3 { font-size: 20px; margin-bottom: 6px; color: #fff; }
+        .game-info p { color: #9ca3af; font-size: 14px; line-height: 1.4; }
+        
+        .badge {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: #10b981;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge.lock { background: #6b7280; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">BEL-SLOTS 🎰</div>
+        <div class="balance-box">Баланс: <span id="display-balance">1000</span> Монет</div>
+    </header>
+
+    <h1 class="menu-title">Выберите игру</h1>
+    <p class="menu-subtitle">Платформа локальных интерактивных слотов</p>
+    
+    <div class="games-grid">
+        <!-- Ссылка ведет на локальный файл lostcity.html -->
+        <a href="lostcity.html" class="game-card">
+            <span class="badge">Играть</span>
+            <div class="cover">🗿</div>
+            <div class="game-info">
+                <h3>Затерянный Город</h3>
+                <p>Древние руины! Ищите комбинации из золотых масок, редких артефактов и тотемов.</p>
+            </div>
+        </a>
+
+        <!-- Заглушка второго режима -->
+        <a href="moneycat.html" class="game-card">
+            <span class="badge">Играть</span>
+            <div class="cover">🔐</div>
+            <div class="game-info">
+                <h3>Денежный Код</h3>
+                <p>Высокотехнологичный взлом цифровых сейфов и крипто-хранилищ.</p>
+            </div>
+
+            <!-- Добавьте этот блок внутрь <div class="games-grid"> в вашем index.html -->
+<a href="wheel.html" class="game-card">
+    <span class="badge" style="background: #a855f7;">New</span>
+    <div class="cover">🔮</div>
+    <div class="game-info">
+        <h3>Колесо Фортуны</h3>
+        <p>Испытайте удачу! Крутите колесо и умножайте свой баланс до x1000 монет мгновенно.</p>
+    </div>
+</a>
+        </div>
+    </div>
+
+    <script>
+        // Инициализируем баланс в памяти браузера, если его еще нет
+        if (!localStorage.getItem("global_player_balance")) {
+            localStorage.setItem("global_player_balance", "1000");
+        }
+        document.getElementById("display-balance").innerText = localStorage.getItem("global_player_balance");
+    </script>
+</body>
+</html>
