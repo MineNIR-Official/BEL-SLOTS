@@ -1,108 +1,229 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Слот: Денежный Кот</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: linear-gradient(135deg, #1c0a0a 0%, #2a0808 100%);
-            color: #fcd34d; font-family: 'Segoe UI', Roboto, sans-serif;
-            min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+var wallet = 1000;
+var isSpinning = false;
+var freeSpinsCount = 0;
+var currentSpinTotalWin = 0; 
+
+var spinBtn = document.getElementById("spin-btn");
+var bonusBtn = document.getElementById("bonus-btn");
+
+var svgCat = '<svg viewBox="0 0 24 24" data-sym="🐱"><path fill="#fcd34d" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.19,6.26L3,21a1,1,0,0,0,1.34,1.34l2.74-1.19A9.89,9.89,0,0,0,12,22,10,10,0,0,0,22,12,10,10,0,0,0,12,2ZM7,9A1.5,1.5,0,1,1,5.5,10.5,1.5,1.5,0,0,1,7,9Zm10,3a5,5,0,0,1-10,0,1,1,0,0,1,2,0,3,3,0,0,0,6,0,1,1,0,0,1,2,0Zm.5-1.5A1.5,1.5,0,1,1,16,9,1.5,1.5,0,0,1,17.5,10.5Z"/></svg>';
+var svgCoin = '<svg viewBox="0 0 24 24" data-sym="🏮"><circle cx="12" cy="12" r="10" fill="#ca8a04"/><rect x="9" y="9" width="6" height="6" fill="#451a03"/></svg>';
+var svgChop = '<svg viewBox="0 0 24 24" data-sym="🥢"><path fill="#f43f5e" d="M2,21L21,2L22,3L3,22L2,21M5,22L22,5L23,6L6,23L5,22Z"/></svg>';
+var svgEnv = '<svg viewBox="0 0 24 24" data-sym="🧧"><rect x="4" y="2" width="16" height="20" rx="2" fill="#b91c1c"/><polygon points="4,4 12,12 20,4" fill="#ca8a04"/></svg>';
+var svgCrown = '<svg viewBox="0 0 24 24" data-sym="👑"><polygon points="2,18 5,8 12,13 19,8 22,18" fill="#eab308"/><circle cx="12" cy="5" r="2" fill="#ef4444"/></svg>';
+var svgWild = '<svg viewBox="0 0 24 24" data-sym="💎"><polygon points="12,2 22,9 12,22 2,9" fill="#38bdf8"/></svg>';
+
+var pool = ["🐱", "🏮", "🥢", "🧧", "👑", "🐱", "🏮", "🧧", "🥢", "💎"];
+
+function getSvgMarkup(symbolName) {
+    if (symbolName === "🐱") return svgCat;
+    if (symbolName === "🏮") return svgCoin;
+    if (symbolName === "🥢") return svgChop;
+    if (symbolName === "🧧") return svgEnv;
+    if (symbolName === "👑") return svgCrown;
+    return svgWild;
+}
+
+// ВОТ ЗДЕСЬ ВСЁ ИСПРАВЛЕНО И СКЛЕЕНО В ОДНУ ФУНКЦИЮ:
+function getRandomEmoji(reelIndex) {
+    var symbol = pool[Math.floor(Math.random() * pool.length)];
+    if (symbol === "💎" && (reelIndex === 0 || reelIndex === 5 || reelIndex === 10)) {
+        var backupPool = ["🐱", "🏮", "🥢", "🧧", "👑"];
+        symbol = backupPool[Math.floor(Math.random() * backupPool.length)];
+    }
+    return getSvgMarkup(symbol);
+}
+
+function syncWallet() {
+    document.getElementById("balance-val").innerText = wallet;
+}
+syncWallet();
+
+if (spinBtn) spinBtn.addEventListener("click", startSpin);
+if (bonusBtn) bonusBtn.addEventListener("click", buyBonusGame);
+
+function buyBonusGame() {
+    if (isSpinning || freeSpinsCount > 0) return;
+    if (wallet < 500) { alert("Недостаточно монет!"); return; }
+    wallet -= 500;
+    syncWallet();
+    freeSpinsCount = 10;
+    document.getElementById("fs-counter").style.display = "block";
+    document.getElementById("fs-counter").innerText = "ОСТАЛОСЬ БОНУСНЫХ СПИНОВ: " + freeSpinsCount;
+    startSpin();
+}
+
+function startSpin() {
+    if (isSpinning) return;
+    if (freeSpinsCount > 0) {
+        freeSpinsCount--;
+        if (freeSpinsCount > 0) {
+            document.getElementById("fs-counter").innerText = "ОСТАЛОСЬ БОНУСНЫХ СПИНОВ: " + freeSpinsCount;
+        } else {
+            document.getElementById("fs-counter").style.display = "none";
         }
-        .slot-container {
-            background: #451a03; border: 4px solid #f59e0b; border-radius: 24px; padding: 25px; width: 100%; max-width: 750px; box-shadow: 0 0 35px rgba(245, 158, 11, 0.4);
+    } else {
+        if (wallet < 100) { alert("Монеты закончились! Пополнение."); wallet = 1000; syncWallet(); return; }
+        wallet -= 100;
+        syncWallet();
+    }
+
+    isSpinning = true;
+    if (spinBtn) spinBtn.disabled = true;
+    if (bonusBtn) bonusBtn.disabled = true;
+    
+    currentSpinTotalWin = 0;
+    document.getElementById("win-val").innerText = "0";
+    document.getElementById("win-val").style.animation = "none";
+    document.getElementById("win-val").style.color = "#4ade80";
+
+    for (var i = 0; i < 15; i++) document.getElementById("s" + i).classList.remove("win-glow");
+
+    var ticks = 0;
+    var timer = setInterval(function() {
+        for (var idx = 0; idx < 15; idx++) {
+            document.getElementById("s" + idx).innerHTML = getRandomEmoji(idx);
         }
-        header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #78350f; }
-        .btn-back { background: #1e1b4b; border: 1px solid #f59e0b; color: #fcd34d; padding: 8px 18px; border-radius: 8px; cursor: pointer; text-decoration: none; font-weight: bold; font-size: 14px; }
-        .balance-box { background: #0f172a; padding: 8px 20px; border-radius: 30px; border: 1px solid #f59e0b; font-weight: bold; font-size: 18px; color: #fff; }
-        .machine-title { text-align: center; color: #fff; font-size: 26px; margin-bottom: 15px; text-shadow: 0 0 10px #ef4444; }
-        .reels-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: #1e0707; padding: 15px; border-radius: 16px; border: 2px solid #78350f; }
-        .cell-item { height: 85px; background: #451a03; border: 2px solid #b45309; border-radius: 12px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s; }
-        .cell-item svg { width: 65%; height: 65%; pointer-events: none; display: block; }
-        .cell-item.win-glow { background: #7f1d1d; border-color: #fff; box-shadow: 0 0 20px #ef4444; transform: scale(1.05); }
-        .control-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; background: #1e0707; padding: 15px; border-radius: 16px; gap: 10px; }
-        .info-text { font-size: 12px; color: #fcd34d; min-width: 90px; }
-        .info-text strong { font-size: 18px; color: #fff; display: block; }
-        .spin-btn { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; border: none; padding: 15px 35px; font-size: 22px; font-weight: bold; border-radius: 14px; cursor: pointer; flex: 1; }
-        .spin-btn:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
-        .buy-bonus-btn { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #1e0707; border: none; padding: 15px 20px; font-size: 15px; font-weight: 800; border-radius: 14px; cursor: pointer; text-align: center; line-height: 1.2; }
-        .buy-bonus-btn:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; }
-        .fs-badge { background: #ef4444; color: white; padding: 10px 20px; border-radius: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; font-size: 20px; border: 2px solid #fcd34d; display: none; box-shadow: 0 0 15px #ef4444; }
-    </style>
-</head>
-<body>
+        ticks++;
+        if (ticks > 10) {
+            clearInterval(timer);
+            checkWinningLines(); 
+        }
+    }, 70);
+}
 
-    <div class="slot-container">
-        <header>
-            <a href="index.html" class="btn-back">← В лобби</a>
-            <div class="balance-box">Баланс: <span id="balance-val">1000</span> Монет</div>
-        </header>
+function checkWinningLines() {
+    function getSym(id) {
+        var cell = document.getElementById("s" + id);
+        var svg = cell.querySelector("svg");
+        return svg ? svg.getAttribute("data-sym") : "";
+    }
 
-        <h1 class="machine-title">ДЕНЕЖНЫЙ КОТ 🐱</h1>
-        <div class="fs-badge" id="fs-counter">ОСТАЛОСЬ БОНУСНЫХ СПИНОВ: 0</div>
+    var c0 = getSym(0), c1 = getSym(1), c2 = getSym(2), c3 = getSym(3), c4 = getSym(4);
+    var c5 = getSym(5), c6 = getSym(6), c7 = getSym(7), c8 = getSym(8), c9 = getSym(9);
+    var c10 = getSym(10), c11 = getSym(11), c12 = getSym(12), c13 = getSym(13), c14 = getSym(14);
 
-        <div class="reels-grid">
-            <div class="cell-item" id="s0"><svg viewBox="0 0 24 24" data-sym="🐱"><path fill="#fcd34d" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.19,6.26L3,21a1,1,0,0,0,1.34,1.34l2.74-1.19A9.89,9.89,0,0,0,12,22,10,10,0,0,0,22,12,10,10,0,0,0,12,2ZM7,9A1.5,1.5,0,1,1,5.5,10.5,1.5,1.5,0,0,1,7,9Zm10,3a5,5,0,0,1-10,0,1,1,0,0,1,2,0,3,3,0,0,0,6,0,1,1,0,0,1,2,0Zm.5-1.5A1.5,1.5,0,1,1,16,9,1.5,1.5,0,0,1,17.5,10.5Z"/></svg></div>
-            <div class="cell-item" id="s1"><svg viewBox="0 0 24 24" data-sym="🏮"><circle cx="12" cy="12" r="10" fill="#ca8a04"/><rect x="9" y="9" width="6" height="6" fill="#451a03"/></svg></div>
-            <div class="cell-item" id="s2"><svg viewBox="0 0 24 24" data-sym="🥢"><path fill="#f43f5e" d="M2,21L21,2L22,3L3,22L2,21M5,22L22,5L23,6L6,23L5,22Z"/></svg></div>
-            <div class="cell-item" id="s3"><svg viewBox="0 0 24 24" data-sym="🧧"><rect x="4" y="2" width="16" height="20" rx="2" fill="#b91c1c"/><polygon points="4,4 12,12 20,4" fill="#ca8a04"/></svg></div>
-            <div class="cell-item" id="s4"><svg viewBox="0 0 24 24" data-sym="👑"><polygon points="2,18 5,8 12,13 19,8 22,18" fill="#eab308"/><circle cx="12" cy="5" r="2" fill="#ef4444"/></svg></div>
-            <div class="cell-item" id="s5"><svg viewBox="0 0 24 24" data-sym="🏮"><circle cx="12" cy="12" r="10" fill="#ca8a04"/><rect x="9" y="9" width="6" height="6" fill="#451a03"/></svg></div>
-            <div class="cell-item" id="s6"><svg viewBox="0 0 24 24" data-sym="🐱"><path fill="#fcd34d" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.19,6.26L3,21a1,1,0,0,0,1.34,1.34l2.74-1.19A9.89,9.89,0,0,0,12,22,10,10,0,0,0,22,12,10,10,0,0,0,12,2ZM7,9A1.5,1.5,0,1,1,5.5,10.5,1.5,1.5,0,0,1,7,9Zm10,3a5,5,0,0,1-10,0,1,1,0,0,1,2,0,3,3,0,0,0,6,0,1,1,0,0,1,2,0Zm.5-1.5A1.5,1.5,0,1,1,16,9,1.5,1.5,0,0,1,17.5,10.5Z"/></svg></div>
-            <div class="cell-item" id="s7"><svg viewBox="0 0 24 24" data-sym="💎"><polygon points="12,2 22,9 12,22 2,9" fill="#38bdf8"/></svg></div>
-            <div class="cell-item" id="s8"><svg viewBox="0 0 24 24" data-sym="🥢"><path fill="#f43f5e" d="M2,21L21,2L22,3L3,22L2,21M5,22L22,5L23,6L6,23L5,22Z"/></svg></div>
-            <div class="cell-item" id="s9"><svg viewBox="0 0 24 24" data-sym="👑"><polygon points="2,18 5,8 12,13 19,8 22,18" fill="#eab308"/><circle cx="12" cy="5" r="2" fill="#ef4444"/></svg></div>
-            <div class="cell-item" id="s10"><svg viewBox="0 0 24 24" data-sym="👑"><polygon points="2,18 5,8 12,13 19,8 22,18" fill="#eab308"/><circle cx="12" cy="5" r="2" fill="#ef4444"/></svg></div>
-            <div class="cell-item" id="s11"><svg viewBox="0 0 24 24" data-sym="🏮"><circle cx="12" cy="12" r="10" fill="#ca8a04"/><rect x="9" y="9" width="6" height="6" fill="#451a03"/></svg></div>
-            <div class="cell-item" id="s12"><svg viewBox="0 0 24 24" data-sym="🥢"><path fill="#f43f5e" d="M2,21L21,2L22,3L3,22L2,21M5,22L22,5L23,6L6,23L5,22Z"/></svg></div>
-            <div class="cell-item" id="s13"><svg viewBox="0 0 24 24" data-sym="🧧"><rect x="4" y="2" width="16" height="20" rx="2" fill="#b91c1c"/><polygon points="4,4 12,12 20,4" fill="#ca8a04"/></svg></div>
-            <div class="cell-item" id="s14"><svg viewBox="0 0 24 24" data-sym="🐱"><path fill="#fcd34d" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.19,6.26L3,21a1,1,0,0,0,1.34,1.34l2.74-1.19A9.89,9.89,0,0,0,12,22,10,10,0,0,0,22,12,10,10,0,0,0,12,2ZM7,9A1.5,1.5,0,1,1,5.5,10.5,1.5,1.5,0,0,1,7,9Zm10,3a5,5,0,0,1-10,0,1,1,0,0,1,2,0,3,3,0,0,0,6,0,1,1,0,0,1,2,0Zm.5-1.5A1.5,1.5,0,1,1,16,9,1.5,1.5,0,0,1,17.5,10.5Z"/></svg></div>
-        </div>
+    var reels = [
+        [c0, c5, c10],
+        [c1, c6, c11],
+        [c2, c7, c12],
+        [c3, c8, c13],
+        [c4, c9, c14]
+    ];
+    var f = new Array(15).fill(0); 
+    var cascadeWin = 0;
+    var targetSymbols = ["🐱", "🏮", "🥢", "🧧", "👑"];
 
-        <div class="control-bar">
-            <div class="info-text">СТАВКА:<strong>100</strong></div>
-            <button class="spin-btn" id="spin-btn">УДАЧА</button>
-            <button class="buy-bonus-btn" id="bonus-btn">КУПИТЬ БОНУСКУ<br><span style='font-size:11px;'>500 Монет</span></button>
-            <div class="info-text" style="text-align: right;">ВЫИГРЫШ:<strong id="win-val">0</strong></div>
-        </div>
-    </div>
+    for (var t = 0; t < targetSymbols.length; t++) {
+        var currentSymbol = targetSymbols[t];
+        var m0 = [], m1 = [], m2 = [], m3 = [], m4 = [];
 
-    <script>
-        var wallet = 1000;
-        try {
-            if (localStorage.getItem("global_player_balance")) {
-                wallet = parseInt(localStorage.getItem("global_player_balance"));
+        for (var r = 0; r < 3; r++) { if (reels[0][r] === currentSymbol || reels[0][r] === "💎") m0.push(r); }
+        for (var r = 0; r < 3; r++) { if (reels[1][r] === currentSymbol || reels[1][r] === "💎") m1.push(r); }
+        for (var r = 0; r < 3; r++) { if (reels[2][r] === currentSymbol || reels[2][r] === "💎") m2.push(r); }
+        for (var r = 0; r < 3; r++) { if (reels[3][r] === currentSymbol || reels[3][r] === "💎") m3.push(r); }
+        for (var r = 0; r < 3; r++) { if (reels[4][r] === currentSymbol || reels[4][r] === "💎") m4.push(r); }
+
+        var maxComboLength = 0;
+        if (m0.length > 0 && m1.length > 0 && m2.length > 0) {
+            maxComboLength = 3;
+            if (m3.length > 0) {
+                maxComboLength = 4;
+                if (m4.length > 0) {
+                    maxComboLength = 5;
+                }
             }
-        } catch(e) {}
-
-        var isSpinning = false;
-        var freeSpinsCount = 0;
-        var currentSpinTotalWin = 0; 
-
-        var spinBtn = document.getElementById("spin-btn");
-        var bonusBtn = document.getElementById("bonus-btn");
-
-        var svgCat = '<svg viewBox="0 0 24 24" data-sym="🐱"><path fill="#fcd34d" d="M12,2A10,10,0,0,0,2,12a9.89,9.89,0,0,0,2.19,6.26L3,21a1,1,0,0,0,1.34,1.34l2.74-1.19A9.89,9.89,0,0,0,12,22,10,10,0,0,0,22,12,10,10,0,0,0,12,2ZM7,9A1.5,1.5,0,1,1,5.5,10.5,1.5,1.5,0,0,1,7,9Zm10,3a5,5,0,0,1-10,0,1,1,0,0,1,2,0,3,3,0,0,0,6,0,1,1,0,0,1,2,0Zm.5-1.5A1.5,1.5,0,1,1,16,9,1.5,1.5,0,0,1,17.5,10.5Z"/></svg>';
-        var svgCoin = '<svg viewBox="0 0 24 24" data-sym="🏮"><circle cx="12" cy="12" r="10" fill="#ca8a04"/><rect x="9" y="9" width="6" height="6" fill="#451a03"/></svg>';
-        var svgChop = '<svg viewBox="0 0 24 24" data-sym="🥢"><path fill="#f43f5e" d="M2,21L21,2L22,3L3,22L2,21M5,22L22,5L23,6L6,23L5,22Z"/></svg>';
-        var svgEnv = '<svg viewBox="0 0 24 24" data-sym="🧧"><rect x="4" y="2" width="16" height="20" rx="2" fill="#b91c1c"/><polygon points="4,4 12,12 20,4" fill="#ca8a04"/></svg>';
-        var svgCrown = '<svg viewBox="0 0 24 24" data-sym="👑"><polygon points="2,18 5,8 12,13 19,8 22,18" fill="#eab308"/><circle cx="12" cy="5" r="2" fill="#ef4444"/></svg>';
-        var svgWild = '<svg viewBox="0 0 24 24" data-sym="💎"><polygon points="12,2 22,9 12,22 2,9" fill="#38bdf8"/></svg>';
-
-        var pool = ["🐱", "🏮", "🥢", "🧧", "👑", "🐱", "🏮", "🧧", "🥢", "💎"];
-
-        function getSvgMarkup(symbolName) {
-            if (symbolName === "🐱") return svgCat;
-            if (symbolName === "🏮") return svgCoin;
-            if (symbolName === "🥢") return svgChop;
-            if (symbolName === "🧧") return svgEnv;
-            if (symbolName === "👑") return svgCrown;
-            return svgWild;
         }
 
-        function getRandomEmoji(reelIndex) {
-            var symbol = pool[Math.floor(Math.random() * pool.length)];
-            if (symbol === "💎" && (reelIndex === 0 || reelIndex === 5 || reelIndex === 10)) {
-var backupPool = ["🐱", "🏮", "🥢", "🧧", "👑"];symbol = backupPool[Math.floor(Math.random() * backupPool.length)];}return getSvgMarkup(symbol);}function syncWallet() {document.getElementById("balance-val").innerText = wallet;}syncWallet();if (spinBtn) spinBtn.addEventListener("click", startSpin);if (bonusBtn) bonusBtn.addEventListener("click", buyBonusGame);function buyBonusGame() {if (isSpinning || freeSpinsCount > 0) return;if (wallet < 500) { alert("Недостаточно монет!"); return; }wallet -= 500;syncWallet();freeSpinsCount = 10;document.getElementById("fs-counter").style.display = "block";document.getElementById("fs-counter").innerText = "ОСТАЛОСЬ БОНУСНЫХ СПИНОВ: " + freeSpinsCount;startSpin();}function startSpin() {if (isSpinning) return;if (freeSpinsCount > 0) {freeSpinsCount--;if (freeSpinsCount > 0) {document.getElementById("fs-counter").innerText = "ОСТАЛОСЬ БОНУСНЫХ СПИНОВ: " + freeSpinsCount;} else {document.getElementById("fs-counter").style.display = "none";}} else {if (wallet < 100) { alert("Монеты закончились! Пополнение."); wallet = 1000; syncWallet(); return; }wallet -= 100;syncWallet();}isSpinning = true;if (spinBtn) spinBtn.disabled = true;if (bonusBtn) bonusBtn.disabled = true;currentSpinTotalWin = 0;document.getElementById("win-val").innerText = "0";document.getElementById("win-val").style.animation = "none";document.getElementById("win-val").style.color = "#4ade80";for (var i = 0; i < 15; i++) document.getElementById("s" + i).classList.remove("win-glow");var ticks = 0;var timer = setInterval(function() {for (var idx = 0; idx < 15; idx++) {document.getElementById("s" + idx).innerHTML = getRandomEmoji(idx);}ticks++;if (ticks > 10) {clearInterval(timer);checkWinningLines();}}, 70);}function checkWinningLines() {function getSym(id) {var cell = document.getElementById("s" + id);var svg = cell.querySelector("svg");return svg ? svg.getAttribute("data-sym") : "";}var c0 = getSym(0), c1 = getSym(1), c2 = getSym(2), c3 = getSym(3), c4 = getSym(4);var c5 = getSym(5), c6 = getSym(6), c7 = getSym(7), c8 = getSym(8), c9 = getSym(9);var c10 = getSym(10), c11 = getSym(11), c12 = getSym(12), c13 = getSym(13), c14 = getSym(14);var reels = [[c0, c5, c10], [c1, c6, c11], [c2, c7, c12], [c3, c8, c13], [c4, c9, c14]];var f = new Array(15).fill(0);var cascadeWin = 0;var targetSymbols = ["🐱", "🏮", "🥢", "🧧", "👑"];for (var t = 0; t < targetSymbols.length; t++) {var currentSymbol = targetSymbols[t];var m0 = [], m1 = [], m2 = [], m3 = [], m4 = [];// ИСПРАВЛЕНО: Теперь считываются правильные индексы колонок [0]-[4] и строк двухмерного массиваfor (var r = 0; r < 3; r++) { if (reels[0][r] === currentSymbol || reels[0][r] === "💎") m0.push(r); }for (var r = 0; r < 3; r++) { if (reels[1][r] === currentSymbol || reels[1][r] === "💎") m1.push(r); }for (var r = 0; r < 3; r++) { if (reels[2][r] === currentSymbol || reels[2][r] === "💎") m2.push(r); }for (var r = 0; r < 3; r++) { if (reels[3][r] === currentSymbol || reels[3][r] === "💎") m3.push(r); }for (var r = 0; r < 3; r++) { if (reels[4][r] === currentSymbol || reels[4][r] === "💎") m4.push(r); }var maxComboLength = 0;if (m0.length > 0 && m1.length > 0 && m2.length > 0) {maxComboLength = 3;if (m3.length > 0) {maxComboLength = 4;if (m4.length > 0) {maxComboLength = 5;}}}if (maxComboLength >= 3) {var pathwaysCount = m0.length * m1.length * m2.length;var baseReward = 50;if (maxComboLength >= 4) { pathwaysCount *= m3.length; baseReward = 120; }if (maxComboLength === 5) { pathwaysCount *= m4.length; baseReward = 400; }if (currentSymbol === "🐱") baseReward *= 2;cascadeWin += (pathwaysCount * baseReward);for (var r = 0; r < m0.length; r++) f[m0[r] * 5 + 0] = 1;for (var r = 0; r < m1.length; r++) f[m1[r] * 5 + 1] = 1;for (var r = 0; r < m2.length; r++) f[m2[r] * 5 + 2] = 1;if (maxComboLength >= 4) { for (var r = 0; r < m3.length; r++) f[m3[r] * 5 + 3] = 1; }if (maxComboLength === 5) { for (var r = 0; r < m4.length; r++) f[m4[r] * 5 + 4] = 1; }}}if (cascadeWin > 0) {currentSpinTotalWin += cascadeWin;document.getElementById("win-val").innerText = currentSpinTotalWin;for (var i = 0; i < 15; i++) {if (f[i] === 1) document.getElementById("s" + i).classList.add("win-glow");}setTimeout(function() {for (var col = 0; col < 5; col++) {var topId = col, midId = col + 5, botId = col + 10;var fTop = f[topId], fMid = f[midId], fBot = f[botId];if (fTop && fMid && fBot) {document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);document.getElementById("s" + midId).innerHTML = getRandomEmoji(midId);document.getElementById("s" + botId).innerHTML = getRandomEmoji(botId);}else if (fMid && fBot) {document.getElementById("s" + botId).innerHTML = document.getElementById("s" + topId).innerHTML;document.getElementById("s" + midId).innerHTML = getRandomEmoji(midId);document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);}else if (fBot) {document.getElementById("s" + botId).innerHTML = document.getElementById("s" + midId).innerHTML;document.getElementById("s" + midId).innerHTML = document.getElementById("s" + topId).innerHTML;document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);}else if (fMid) {document.getElementById("s" + midId).innerHTML = document.getElementById("s" + topId).innerHTML;document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);}else if (fTop) {document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);}}for (var i = 0; i < 15; i++) document.getElementById("s" + i).classList.remove("win-glow");setTimeout(checkWinningLines, 500);}, 900);} else {if (currentSpinTotalWin > 0) {wallet += currentSpinTotalWin;var winField = document.getElementById("win-val");winField.style.color = "#eab308";winField.style.animation = "pulse-win 0.3s infinite alternate";if (!document.getElementById("win-animation-style")) {var style = document.createElement("style");style.id = "win-animation-style";style.innerHTML = "@keyframes pulse-win { from { transform: scale(1); text-shadow: none; } to { transform: scale(1.2); text-shadow: 0 0 15px #eab308; } }";document.head.appendChild(style);}setTimeout(endSpinCycle, 1500);} else {endSpinCycle();}}}function endSpinCycle() {document.getElementById("balance-val").innerText = wallet;try {localStorage.setItem("global_player_balance", wallet.toString());} catch(e) {}isSpinning = false;if (freeSpinsCount > 0) {setTimeout(startSpin, 1000);} else {if (spinBtn) spinBtn.disabled = false;if (bonusBtn) bonusBtn.disabled = false;}}
+        if (maxComboLength >= 3) {
+            var pathwaysCount = m0.length * m1.length * m2.length;
+            var baseReward = 50; 
+
+            if (maxComboLength >= 4) { pathwaysCount *= m3.length; baseReward = 120; }
+            if (maxComboLength === 5) { pathwaysCount *= m4.length; baseReward = 400; }
+            if (currentSymbol === "🐱") baseReward *= 2; 
+
+            cascadeWin += (pathwaysCount * baseReward);
+
+            for (var r = 0; r < m0.length; r++) f[m0[r] * 5 + 0] = 1;
+            for (var r = 0; r < m1.length; r++) f[m1[r] * 5 + 1] = 1;
+            for (var r = 0; r < m2.length; r++) f[m2[r] * 5 + 2] = 1;
+            if (maxComboLength >= 4) { for (var r = 0; r < m3.length; r++) f[m3[r] * 5 + 3] = 1; }
+            if (maxComboLength === 5) { for (var r = 0; r < m4.length; r++) f[m4[r] * 5 + 4] = 1; }
+        }
+    }
+
+    if (cascadeWin > 0) {
+        currentSpinTotalWin += cascadeWin;
+        document.getElementById("win-val").innerText = currentSpinTotalWin;
+
+        for (var i = 0; i < 15; i++) {
+            if (f[i] === 1) document.getElementById("s" + i).classList.add("win-glow");
+        }
+
+        setTimeout(function() {
+            for (var col = 0; col < 5; col++) {
+                var topId = col, midId = col + 5, botId = col + 10;
+                var fTop = f[topId], fMid = f[midId], fBot = f[botId];
+
+                if (fTop && fMid && fBot) {
+                    document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);
+                    document.getElementById("s" + midId).innerHTML = getRandomEmoji(midId);
+                    document.getElementById("s" + botId).innerHTML = getRandomEmoji(botId);
+                } 
+                else if (fMid && fBot) {
+                    document.getElementById("s" + botId).innerHTML = document.getElementById("s" + topId).innerHTML;
+                    document.getElementById("s" + midId).innerHTML = getRandomEmoji(midId);
+                    document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);
+                } 
+                else if (fBot) {
+                    document.getElementById("s" + botId).innerHTML = document.getElementById("s" + midId).innerHTML;
+                    document.getElementById("s" + midId).innerHTML = document.getElementById("s" + topId).innerHTML;
+                    document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);
+                } 
+                else if (fMid) {
+                    document.getElementById("s" + midId).innerHTML = document.getElementById("s" + topId).innerHTML;
+                    document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);
+                } 
+                else if (fTop) {
+                    document.getElementById("s" + topId).innerHTML = getRandomEmoji(topId);
+                }
+            }
+
+            for (var i = 0; i < 15; i++) document.getElementById("s" + i).classList.remove("win-glow");
+            setTimeout(checkWinningLines, 500);
+        }, 900);
+
+    } else {
+        if (currentSpinTotalWin > 0) {
+            wallet += currentSpinTotalWin;
+            var winField = document.getElementById("win-val");
+            winField.style.color = "#eab308";
+            winField.style.animation = "pulse-win 0.3s infinite alternate";
+            
+            if (!document.getElementById("win-animation-style")) {
+                var style = document.createElement("style");
+                style.id = "win-animation-style";
+                style.innerHTML = "@keyframes pulse-win { from { transform: scale(1); text-shadow: none; } to { transform: scale(1.2); text-shadow: 0 0 15px #eab308; } }";
+                document.head.appendChild(style);
+            }
+            setTimeout(endSpinCycle, 1500);
+        } else {
+            endSpinCycle();
+        }
+    }
+}
+
+function endSpinCycle() {
+    document.getElementById("balance-val").innerText = wallet;
+    try {
+        localStorage.setItem("global_player_balance", wallet.toString());
+    } catch(e) {}
+    isSpinning = false;
+    if (freeSpinsCount > 0) {
+        setTimeout(startSpin, 1000);
+    } else {
+if (spinBtn) spinBtn.disabled = false;
+if (bonusBtn) bonusBtn.disabled = false;
+}
+}
